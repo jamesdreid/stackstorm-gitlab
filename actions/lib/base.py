@@ -1,6 +1,10 @@
 import gitlab
 
 from st2common.runners.base_action import Action
+from st2common import log as logging
+
+LOG = logging.getLogger(__name__)
+
 
 __all__ = [
     'GitlabBaseAction'
@@ -21,13 +25,13 @@ class GitlabBaseAction(Action):
 
         self.url = self.config.get('url', None)
         
-        # Only one of the 3 tokens should be defined. If multiple token types are supplied,
-        # a token will be selected using the following precedence:
-        #    Private > OAuth > Job
+        # # Only one of the 3 tokens should be defined. If multiple token types are supplied,
+        # # a token will be selected using the following precedence:
+        # #    Private > OAuth > Job
     
-        self.private_token = self.config.get('private_token', None)
-        self.oauth_token = self.config.get('oauth_token', None)
-        self.job_token = self.config.get('job_token', None)
+        # self.private_token = self.config.get('private_token', None)
+        # self.oauth_token = self.config.get('oauth_token', None)
+        # self.job_token = self.config.get('job_token', None)
 
         # Gitlab API limits per_page value to 100.  If not provided, the default will be 
         # set to 10 items returned per page
