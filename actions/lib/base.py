@@ -1,4 +1,5 @@
 import gitlab
+from gitlab import GitlabGetError, GitlabListError, exceptions
 
 from st2common.runners.base_action import Action
 from st2common import log as logging
@@ -56,5 +57,75 @@ class GitlabBaseAction(Action):
         )
         return gitlab_api
 
+    def gitlab_id_search(obj, text):
+        """
+        Helper function used to use the search option on the list method 
+        of a Gitlab object when a text string is used with a get method
+        instead of a int
+        """
+        try:
+            call = getattr(obj, 'list')
+        except AttributeError as e:
+            LOG.debug("Object provided does not support list method."
+            "Check source data and try again.")
+            raise e
+        try:
+            response = call(search=text, top_level_only=True)
+            if len(response) > 1:
+                LOG.debug("Search string too general. Refine input text so it returns only a single value.")
+                raise ValueError("Search string returned multiple results.")
+            output = response[0].id
+            return output
+        except GitlabGetError:
+            LOG.debug("Gitlab API GET request failed ")
+            return output
 
-        
+    def gitlab_list(obj, parameters):
+        """
+        Function used to execute the list method on a Gitlab object
+        and return a list of the objects attributes 
+        """
+        try:
+            call = getattr(obj, 'list')
+        except AttributeError as e:
+            LOG.debug("Object provided does not support list method."
+            "Check source data and try again.")
+            raise e
+        output = []
+        try:
+            response = call(**parameters)
+            for entry in response:
+                output.append(entry.attributes)
+            return output
+        except GitlabListError:
+            LOG.debug("Gitlab API LIST request failed.")
+            return output   
+
+    def gitlab_get(obj, objid):
+        """
+        Function used to execute the get method on a Gitlab object
+        and return the specific object requested based upon the objid
+        submitted.  If the objid is a text string, a call to the ID search
+        helper function will be made to resolve the numeric ID of the
+        object requested
+        """
+        try:
+            int(objid)
+            call = getattr(obj, 'get')
+            try:
+                response = call(objid)
+                output = response.attributes
+                return output
+            except GitlabGetError:
+                LOG.debug("Gitlab API GET request failed ")
+                return output
+        except ValueError:
+            intid = gitlab_id_search(obj, objid)
+            call = getattr(obj, 'get')
+            try:
+                response = call(intid)
+                output = response.attributes
+                return output
+            except GitlabGetError:
+                LOG.debug("Gitlab API GET request failed ")
+                return output
