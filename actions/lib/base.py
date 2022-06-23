@@ -76,7 +76,7 @@ class GitlabBaseAction(Action):
                 raise ValueError("Search string returned multiple results.")
             output = response[0].id
             return output
-        except GitlabGetError:
+        except gitlab.GitlabGetError:
             LOG.debug("Gitlab API GET request failed ")
             return output
 
@@ -97,7 +97,7 @@ class GitlabBaseAction(Action):
             for entry in response:
                 output.append(entry.attributes)
             return output
-        except GitlabListError:
+        except gitlab.GitlabListError:
             LOG.debug("Gitlab API LIST request failed.")
             return output   
 
@@ -126,6 +126,38 @@ class GitlabBaseAction(Action):
                 response = call(intid)
                 output = response.attributes
                 return output
+            except gitlab.GitlabGetError:
+                LOG.debug("Gitlab API GET request failed ")
+                return output
+
+    def gitlab_update(obj, objid, parameters):
+        """
+        Function used to execute the get method on a Gitlab object
+        and return the specific object requested based upon the objid
+        submitted.  If the objid is a text string, a call to the ID search
+        helper function will be made to resolve the numeric ID of the
+        object requested
+        """
+        try:
+            int(objid)
+            call = getattr(obj, 'get')
+            try:
+                response = call(objid)
+                for k, v in parameters.items():
+                    obj.__setattr__(k, v)
+                    obj.save() 
             except GitlabGetError:
                 LOG.debug("Gitlab API GET request failed ")
                 return output
+        except ValueError:
+            intid = gitlab_id_search(obj, objid)
+            call = getattr(obj, 'get')
+            try:
+                response = call(intid)
+                for k, v in parameters.items():
+                    obj.__setattr__(k, v)
+                    obj.save() 
+            except gitlab.GitlabGetError:
+                LOG.debug("Gitlab API GET request failed ")
+                return output
+
